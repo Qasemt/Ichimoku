@@ -1,3 +1,5 @@
+[![Go](https://github.com/Qasemt/Ichimoku/actions/workflows/go.yml/badge.svg)](https://github.com/Qasemt/Ichimoku/actions/workflows/go.yml)
+----
 # Ichimoku
 
 ichimoku indicator
