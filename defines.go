@@ -4,6 +4,7 @@ import "errors"
 
 var (
 	NotEnoughData = errors.New("Not Enough Data")
+	DataNotFill   = errors.New("Data not fill")
 )
 
 type Equation struct {

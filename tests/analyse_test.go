@@ -1,29 +1,31 @@
 package tests
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/qasemt/ichimoku"
+	"github.com/stretchr/testify/assert"
 )
 
-func Abs(v int) int {
-	return 1
-}
 func TestWeek(t *testing.T) {
 
-	fmt.Println("bars ", bars)
-	//a, e := driver.Classify_ichimoku(buff)
-	//g := h.NewHistoryCommon()
+	//fmt.Println("bars ", bars)
+	driver := ichimoku.NewIchimokuDriver()
+	//ctl := gomock.NewController(t)
+	//	d := mock_ichimoku.NewMockIIchimokuDriver(ctl)
+	//	fmt.Println("a", d)
 
-	//h "github.com/qchart-app/AppServer/application/usecases/history"
-}
-func TestHelper(t *testing.T) {
+	today := ichimoku.NewIchimokuStatus(ichimoku.NewValue(8380), ichimoku.NewValue(8380), ichimoku.NewValue(8380), ichimoku.NewValue(8865), ichimoku.NewValue(8440), ichimoku.Bar{Low: 8380, High: 8610, Close: 8440})
 
-	// t.Run("step 1", func(t *testing.T) {
+	yesterday := ichimoku.NewIchimokuStatus(ichimoku.NewValue(8210), ichimoku.NewValue(8375), ichimoku.NewValue(8292.5), ichimoku.NewValue(8865), ichimoku.NewValue(8430), ichimoku.Bar{Low: 7820, High: 8210, Close: 8200})
 
-	// 	assert.Equal(t, x.Year(), 2007)
-	// })
+	lines_result := make([]ichimoku.IchimokuStatus, 2)
+	lines_result[0] = *today //today
+	lines_result[1] = *yesterday
+
+	a, e := driver.AnalyseIchimoku(lines_result)
+	assert.Empty(t, e)
+	assert.Equal(t, a.Status, ichimoku.IchimokuStatus_Cross_Inside)
 
 }
 

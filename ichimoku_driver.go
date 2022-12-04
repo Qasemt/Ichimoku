@@ -6,9 +6,9 @@ import (
 )
 
 type IIchimokuDriver interface {
-	IchimokuRun() ([]Ichimoku, error)
+	IchimokuRun(bars []Bar) ([]IchimokuStatus, error)
 	PrintResult()
-	CheckIchimoku(data []Ichimoku) (*Ichimoku, error)
+	AnalyseIchimoku(lines_ichi []IchimokuStatus) (*IchimokuStatus, error)
 }
 
 type IchimokuDriver struct {
@@ -20,10 +20,9 @@ type IchimokuDriver struct {
 	laggingSpan    []float64
 }
 
-func NewIchimokuDriver(bars []Bar) IIchimokuDriver {
+func NewIchimokuDriver() IIchimokuDriver {
 	xx := IchimokuDriver{}
 
-	xx.bars = bars
 	return &xx
 }
 
@@ -41,13 +40,60 @@ func (xx *IchimokuDriver) load(from int, to int) []Bar {
 	return xx.bars[from:to]
 
 }
-func (xx *IchimokuDriver) IchimokuRun() ([]Ichimoku, error) {
-	// TurningLine
-	days := []Ichimoku{}
+func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error) {
 
-	if len(xx.bars) == 0 {
-		return nil, fmt.Errorf("data not fill")
+	if len(data) != 2 {
+		return nil, NotEnoughData
 	}
+
+	today := data[0]
+	yesterday := data[1]
+	var intersection float64
+	latest := IchimokuStatus{}
+	if (yesterday.TenkenSen.valLine <= yesterday.KijonSen.valLine && today.TenkenSen.valLine > today.KijonSen.valLine) || (yesterday.TenkenSen.valLine < yesterday.KijonSen.valLine && today.TenkenSen.valLine >= today.KijonSen.valLine) {
+
+		if today.KijonSen.valLine == today.TenkenSen.valLine {
+			intersection = today.KijonSen.valLine
+		} else {
+			intersection = o.get_intersection_point(yesterday.TenkenSen.valLine, today.TenkenSen.valLine, yesterday.KijonSen.valLine, today.KijonSen.valLine)
+		}
+		if today.Below(intersection) {
+			today.SetStatus(IchimokuStatus_Cross_Below)
+		} else if today.inside(intersection) {
+			today.SetStatus(IchimokuStatus_Cross_Inside)
+		} else if today.Above(intersection) {
+			today.SetStatus(IchimokuStatus_Cross_Above)
+		} else {
+			fmt.Printf("TK cross found but not classified for ")
+		}
+
+		if o.price_action_leaving_cloud(today, yesterday) && today.Is_cloud_green() {
+			today.SetLeavingCloud(true)
+		}
+
+		//    if yesterday_ichi.leading_span_a <= yesterday_ichi.leading_span_b and today_ichi.leading_span_a > today_ichi.leading_span_b or yesterday_ichi.leading_span_a < yesterday_ichi.leading_span_b and today_ichi.leading_span_a >= today_ichi.leading_span_b:
+
+		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine && today.SencoA.valLine > today.SencoB.valLine || yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
+			if today.TenkenSen.valLine >= today.KijonSen.valLine {
+				today.SetFolding(true)
+			}
+		}
+		latest = today
+		return &latest, nil
+	} else {
+		return nil, nil
+	}
+
+}
+func (xx *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
+
+	if len(bars) == 0 {
+		return nil, DataNotFill
+	}
+
+	xx.bars = bars
+	// TurningLine
+	days := []IchimokuStatus{}
 
 	for day := 0; day < 100; day++ {
 		lenx := len(xx.bars) - 1
@@ -85,7 +131,7 @@ func (xx *IchimokuDriver) IchimokuRun() ([]Ichimoku, error) {
 
 		if !tenkenLine.isNil && !kijonLine.isNil && !span_a.isNil && !span_b.isNil {
 
-			ichi := NewIchimoku(tenkenLine, kijonLine, span_a, span_b, chiko, latestPrice)
+			ichi := NewIchimokuStatus(tenkenLine, kijonLine, span_a, span_b, chiko, latestPrice)
 			days = append(days, *ichi)
 		} else {
 			if len(days) == 0 {
@@ -139,52 +185,6 @@ func (o *IchimokuDriver) calculate_span_a(tenken ValueLine, kijon ValueLine) Val
 	return NewValueLineNil()
 }
 
-func (o *IchimokuDriver) CheckIchimoku(data []Ichimoku) (*Ichimoku, error) {
-
-	if len(data) != 2 {
-		return nil, NotEnoughData
-	}
-
-	today := data[0]
-	yesterday := data[1]
-	var intersection float64
-	latest := Ichimoku{}
-	if (yesterday.TenkenSen.valLine <= yesterday.KijonSen.valLine && today.TenkenSen.valLine > today.KijonSen.valLine) || (yesterday.TenkenSen.valLine < yesterday.KijonSen.valLine && today.TenkenSen.valLine >= today.KijonSen.valLine) {
-
-		if today.KijonSen.valLine == today.TenkenSen.valLine {
-			intersection = today.KijonSen.valLine
-		} else {
-			intersection = o.get_intersection_point(yesterday.TenkenSen.valLine, today.TenkenSen.valLine, yesterday.KijonSen.valLine, today.KijonSen.valLine)
-		}
-		if today.Below(intersection) {
-			today.SetStatus(IchimokuStatus_Cross_Below)
-		} else if today.inside(intersection) {
-			today.SetStatus(IchimokuStatus_Cross_Inside)
-		} else if today.Above(intersection) {
-			today.SetStatus(IchimokuStatus_Cross_Above)
-		} else {
-			fmt.Printf("TK cross found but not classified for ")
-		}
-
-		if o.price_action_leaving_cloud(today, yesterday) && today.Is_cloud_green() {
-			today.SetLeavingCloud(true)
-		}
-
-		//    if yesterday_ichi.leading_span_a <= yesterday_ichi.leading_span_b and today_ichi.leading_span_a > today_ichi.leading_span_b or yesterday_ichi.leading_span_a < yesterday_ichi.leading_span_b and today_ichi.leading_span_a >= today_ichi.leading_span_b:
-
-		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine && today.SencoA.valLine > today.SencoB.valLine || yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
-			if today.TenkenSen.valLine >= today.KijonSen.valLine {
-				today.SetFolding(true)
-			}
-		}
-		latest = today
-		return &latest, nil
-	} else {
-		return nil, nil
-	}
-
-}
-
 func (o *IchimokuDriver) get_intersection_point(a float64, b float64, x float64, y float64) float64 {
 
 	conversion := o.get_line_equation([]float64{0, a}, []float64{1, b})
@@ -200,7 +200,7 @@ func (o *IchimokuDriver) get_line_equation(p1 []float64, p2 []float64) *Equation
 	eq.Intercept = (-1 * eq.Slope * p1[0]) + p1[1]
 	return &eq
 }
-func (o *IchimokuDriver) price_action_leaving_cloud(today Ichimoku, yesterday Ichimoku) bool {
+func (o *IchimokuDriver) price_action_leaving_cloud(today IchimokuStatus, yesterday IchimokuStatus) bool {
 	if o.inside_range([]float64{yesterday.bar.High, yesterday.bar.Low}, []float64{yesterday.SencoA.valLine, yesterday.SencoB.valLine}) {
 		var comparison float64
 

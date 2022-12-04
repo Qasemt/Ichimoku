@@ -99,9 +99,9 @@ func main() {
 
 	fmt.Println(len(bars))
 
-	driver := ichimoku.NewIchimokuDriver(bars)
+	driver := ichimoku.NewIchimokuDriver()
 
-	arr, err := driver.IchimokuRun()
+	arr, err := driver.IchimokuRun(bars)
 	if err != nil {
 		fmt.Println("error :", err)
 	}
@@ -109,15 +109,15 @@ func main() {
 		fmt.Printf("%v\r\n", it.Print())
 	}
 
-	buff := make([]ichimoku.Ichimoku, 2)
+	lines_result := make([]ichimoku.IchimokuStatus, 2)
 
 	for i := len(arr) - 2; i > 0; i-- {
 		today := arr[i]
 		pre := arr[i+1]
-		buff[0] = today //today
-		buff[1] = pre
+		lines_result[0] = today //today
+		lines_result[1] = pre
 
-		a, e := driver.CheckIchimoku(buff)
+		a, e := driver.AnalyseIchimoku(lines_result)
 
 		if e != nil {
 			fmt.Println("err", e)

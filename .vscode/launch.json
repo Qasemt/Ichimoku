@@ -23,12 +23,10 @@
       "request": "launch",
       "mode": "test",
       "program": "${workspaceFolder}/tests",
-      "envFile": "${workspaceFolder}/.env",
+      "envFile": "",
       "showLog": false,
       "output": "${workspaceFolder}/bin/ff.exe",
       "args": [
-        "-test.run",
-        "TestRunWenSocket"
         // "TestGetState24h"
         //"TestKuCoinReadPrice"
         //"TestWSFiber"
