@@ -7,7 +7,6 @@ import (
 
 type IIchimokuDriver interface {
 	IchimokuRun(bars []Bar) ([]IchimokuStatus, error)
-	PrintResult()
 	AnalyseIchimoku(lines_ichi []IchimokuStatus) (*IchimokuStatus, error)
 }
 
@@ -40,57 +39,14 @@ func (xx *IchimokuDriver) load(from int, to int) []Bar {
 	return xx.bars[from:to]
 
 }
-func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error) {
 
-	if len(data) != 2 {
-		return nil, NotEnoughData
-	}
-
-	today := data[0]
-	yesterday := data[1]
-	var intersection float64
-	latest := IchimokuStatus{}
-	if (yesterday.TenkenSen.valLine <= yesterday.KijonSen.valLine && today.TenkenSen.valLine > today.KijonSen.valLine) || (yesterday.TenkenSen.valLine < yesterday.KijonSen.valLine && today.TenkenSen.valLine >= today.KijonSen.valLine) {
-
-		if today.KijonSen.valLine == today.TenkenSen.valLine {
-			intersection = today.KijonSen.valLine
-		} else {
-			intersection = o.get_intersection_point(yesterday.TenkenSen.valLine, today.TenkenSen.valLine, yesterday.KijonSen.valLine, today.KijonSen.valLine)
-		}
-		if today.Below(intersection) {
-			today.SetStatus(IchimokuStatus_Cross_Below)
-		} else if today.inside(intersection) {
-			today.SetStatus(IchimokuStatus_Cross_Inside)
-		} else if today.Above(intersection) {
-			today.SetStatus(IchimokuStatus_Cross_Above)
-		} else {
-			fmt.Printf("TK cross found but not classified for ")
-		}
-
-		if o.price_action_leaving_cloud(today, yesterday) && today.Is_cloud_green() {
-			today.SetLeavingCloud(true)
-		}
-
-		//    if yesterday_ichi.leading_span_a <= yesterday_ichi.leading_span_b and today_ichi.leading_span_a > today_ichi.leading_span_b or yesterday_ichi.leading_span_a < yesterday_ichi.leading_span_b and today_ichi.leading_span_a >= today_ichi.leading_span_b:
-
-		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine && today.SencoA.valLine > today.SencoB.valLine || yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
-			if today.TenkenSen.valLine >= today.KijonSen.valLine {
-				today.SetFolding(true)
-			}
-		}
-		latest = today
-		return &latest, nil
-	} else {
-		return nil, nil
-	}
-
-}
 func (xx *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 
 	if len(bars) == 0 {
 		return nil, DataNotFill
 	}
 
+	//previous_cross_with_kijon := false
 	xx.bars = bars
 	// TurningLine
 	days := []IchimokuStatus{}
@@ -107,7 +63,7 @@ func (xx *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 		var chiko ValueLine
 
 		if chiko_index >= 0 && len(xx.bars) > chiko_index {
-			chiko.SetValue(xx.bars[chiko_index].Close)
+			chiko.SetValue(xx.bars[chiko_index].C)
 		} else {
 			if len(days) == 0 {
 				return nil, NotEnoughData
@@ -132,6 +88,13 @@ func (xx *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 		if !tenkenLine.isNil && !kijonLine.isNil && !span_a.isNil && !span_b.isNil {
 
 			ichi := NewIchimokuStatus(tenkenLine, kijonLine, span_a, span_b, chiko, latestPrice)
+
+			if kijonLine.isNil == false && latestPrice.O < kijonLine.valLine && latestPrice.C > kijonLine.valLine {
+				ichi.SetCrossKijonAndPrice(true)
+			}
+			if kijonLine.isNil == false && latestPrice.C < kijonLine.valLine && latestPrice.O > kijonLine.valLine {
+				ichi.SetCrossKijonAndPrice(true)
+			}
 			days = append(days, *ichi)
 		} else {
 			if len(days) == 0 {
@@ -144,8 +107,79 @@ func (xx *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 	return days, nil
 
 }
-func (xx *IchimokuDriver) PrintResult() {
-	// fmt.Printf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v \r\n", it.TenkenSen.Value(), it.KijonSen.Value(), it.SencoA.Value(), it.SencoB.Value(), it.Chiko.Value(), it.Is_cloud_green(), it.IsChikoAbovePrice())
+
+//analyse with two days
+func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error) {
+
+	if len(data) != 2 {
+		return nil, NotEnoughData
+	}
+
+	today := data[0]
+	yesterday := data[1]
+	var intersection float64
+	latest := IchimokuStatus{}
+	// if yesterday.TenkenSen.valLine == 9515 && yesterday.KijonSen.valLine == 9480 {
+	// 	fmt.Println("a")
+	// }
+	G := yesterday.TenkenSen.valLine <= yesterday.KijonSen.valLine && today.TenkenSen.valLine > today.KijonSen.valLine
+	R := yesterday.TenkenSen.valLine < yesterday.KijonSen.valLine && today.TenkenSen.valLine >= today.KijonSen.valLine
+
+	// R := yesterday.TenkenSen.valLine > today.TenkenSen.valLine && today.KijonSen.valLine >= yesterday.KijonSen.valLine
+	// G := yesterday.TenkenSen.valLine < today.TenkenSen.valLine && yesterday.KijonSen.valLine <= today.KijonSen.valLine
+	if G || R {
+
+		// if yesterday.bar.T == 1668490200000 {
+		// 	fmt.Println("a")
+		// }
+		if today.KijonSen.valLine == today.TenkenSen.valLine {
+			intersection = today.KijonSen.valLine
+		} else {
+			intersection = o.get_intersection_point(yesterday.TenkenSen.valLine, today.TenkenSen.valLine, yesterday.KijonSen.valLine, today.KijonSen.valLine)
+		}
+		if today.Below(intersection) {
+			today.SetStatus(IchimokuStatus_Cross_Below)
+		} else if today.Above(intersection) {
+			today.SetStatus(IchimokuStatus_Cross_Above)
+		} else {
+			fmt.Printf("TK cross found but not classified for ")
+		}
+
+		if o.price_action_leaving_cloud(today, yesterday) && today.Is_cloud_green() {
+			today.SetLeavingCloud(true)
+		}
+
+		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine && today.SencoA.valLine > today.SencoB.valLine || yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
+			if today.TenkenSen.valLine >= today.KijonSen.valLine {
+				today.SetCloudSwitching(true)
+			}
+		}
+		latest = today
+		return &latest, nil
+	} else {
+		return nil, nil
+	}
+
+}
+
+//analyse with 26 day or more
+func (o *IchimokuDriver) DeepTimeAnalyse(data []IchimokuStatus) (*IchimokuStatus, error) {
+
+	if len(data) != 0 || len(data) < 54 {
+		return nil, NotEnoughData
+	}
+	//first_cross_after_26 := false
+	for i := 0; i < len(data); i++ {
+		s := data[i]
+
+		if s.bar.C < s.KijonSen.valLine {
+
+		}
+
+		return nil, nil
+	}
+
+	return nil, nil
 }
 
 // private 1
@@ -157,18 +191,18 @@ func (o *IchimokuDriver) calcLine(line_type ELine, bars []Bar) ValueLine {
 	}
 	for _, v := range bars {
 		if high.isNil {
-			high.SetValue(v.High)
+			high.SetValue(v.H)
 		}
 		if low.isNil {
-			low.SetValue(v.Low)
+			low.SetValue(v.L)
 		}
 
-		if v.High > high.valLine {
-			high.SetValue(v.High)
+		if v.H > high.valLine {
+			high.SetValue(v.H)
 		}
 
-		if v.Low < low.valLine {
-			low.SetValue(v.Low)
+		if v.L < low.valLine {
+			low.SetValue(v.L)
 		}
 
 	}
@@ -185,23 +219,24 @@ func (o *IchimokuDriver) calculate_span_a(tenken ValueLine, kijon ValueLine) Val
 	return NewValueLineNil()
 }
 
-func (o *IchimokuDriver) get_intersection_point(a float64, b float64, x float64, y float64) float64 {
+func (o *IchimokuDriver) get_intersection_point(tenken_A float64, tenken_B float64, Kijon_a float64, kijon_b float64) float64 {
 
-	conversion := o.get_line_equation([]float64{0, a}, []float64{1, b})
-	base := o.get_line_equation([]float64{0, x}, []float64{1, y})
-	x_intersection := (base.Intercept - conversion.Intercept) / (conversion.Slope - base.Slope)
-	y_intersection := (base.Slope * x_intersection) + base.Intercept
+	tenken := o.getLineEquation(NewPoint(0, tenken_A), NewPoint(1, tenken_B))
+	kijon := o.getLineEquation(NewPoint(0, Kijon_a), NewPoint(1, kijon_b))
+	x_intersection := (kijon.Intercept - tenken.Intercept) / (tenken.Slope - kijon.Slope)
+	y_intersection := (kijon.Slope * x_intersection) + kijon.Intercept
 	return y_intersection
 }
 
-func (o *IchimokuDriver) get_line_equation(p1 []float64, p2 []float64) *Equation {
+func (o *IchimokuDriver) getLineEquation(p1 Point, p2 Point) *Equation {
 	eq := Equation{}
-	eq.Slope = (p2[1] - p1[1]) / (p2[0] - p1[0])
-	eq.Intercept = (-1 * eq.Slope * p1[0]) + p1[1]
+	eq.Slope = (p2.Y - p1.Y) / (p2.X - p1.X)
+	eq.Intercept = (-1 * eq.Slope * p1.X) + p1.Y
 	return &eq
 }
+
 func (o *IchimokuDriver) price_action_leaving_cloud(today IchimokuStatus, yesterday IchimokuStatus) bool {
-	if o.inside_range([]float64{yesterday.bar.High, yesterday.bar.Low}, []float64{yesterday.SencoA.valLine, yesterday.SencoB.valLine}) {
+	if o.inside_range([]float64{yesterday.bar.H, yesterday.bar.L}, []float64{yesterday.SencoA.valLine, yesterday.SencoB.valLine}) {
 		var comparison float64
 
 		if today.Is_cloud_green() {
@@ -209,7 +244,7 @@ func (o *IchimokuDriver) price_action_leaving_cloud(today IchimokuStatus, yester
 		} else {
 			return false
 		}
-		if today.bar.Close > comparison {
+		if today.bar.C > comparison {
 			return true
 		}
 	}
