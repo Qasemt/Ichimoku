@@ -8,7 +8,7 @@ import (
 type IIchimokuDriver interface {
 	IchimokuRun(bars []Bar) ([]IchimokuStatus, error)
 	AnalyseIchimoku(lines_ichi []IchimokuStatus) (*IchimokuStatus, error)
-	GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) float64
+	GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) (EInterSectionStatus, float64)
 }
 
 type IchimokuDriver struct {
@@ -233,36 +233,32 @@ func (o *IchimokuDriver) get_intersection_point(line1_pointA Point, line1_pointB
 	y_intersection := (kijon.Slope * x_intersection) + kijon.Intercept
 	return y_intersection
 }
-func (o *IchimokuDriver) GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) float64 {
+func (o *IchimokuDriver) GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) (EInterSectionStatus, float64) {
 
-	var m1, m2 float64
-	m1 = (line1_pointB.Y-line1_pointA.Y)/(line1_pointB.X) - line1_pointA.X
-	m2 = (line2_pointB.Y-line2_pointA.Y)/(line2_pointB.X) - line2_pointA.X
+	Eq_A := o.getLineEquation(line1_pointA, line1_pointB) // tenken
+	Eq_B := o.getLineEquation(line2_pointA, line2_pointB) //kijon
 
-	if m1 == m2 {
-		fmt.Println("Lines are parallel")
-	} else if m1 == -(1 / m2) {
-		var b1, b2, x1, y1, inx, inb float64
-
-		b1 = line1_pointA.Y - m1*line1_pointA.X
-		b2 = line2_pointA.Y - m2*line2_pointA.X
-
-		inx = (m1 - m2)
-		inb = (b2 - b1)
-		x1 = inb / inx
-		y1 = m1*x1 + b1
-
-		fmt.Println("Point of intersection is", x1, ",", y1)
-	} else {
-		fmt.Println("Lines are neither parallel or  perpendicular")
+	if line1_pointA == line2_pointA {
+		return EInterSectionStatus_Parallel, -1
 
 	}
-	return 0
+
+	if Eq_A.Slope-Eq_B.Slope == 0 {
+		return EInterSectionStatus_Parallel, -1
+
+	}
+	x_intersection := (Eq_B.Intercept - Eq_A.Intercept) / (Eq_A.Slope - Eq_B.Slope)
+	y_intersection := Eq_A.Slope*x_intersection + Eq_A.Intercept
+
+	//fmt.Printf("Point of intersection is x:%.2f , y:%.2f ", x_intersection, y_intersection)
+	return EInterSectionStatus_Find, y_intersection
 }
+
 func (o *IchimokuDriver) getLineEquation(p1 Point, p2 Point) *Equation {
 	eq := Equation{}
-	eq.Slope = (p1.Y - p2.Y) / (p1.X - p2.X)
-	eq.Intercept = (-1 * eq.Slope * p1.X) + p1.Y
+	eq.Slope = (p2.Y - p1.Y) / (p2.X - p1.X)
+	//eq.Intercept = (-1 * eq.Slope * p1.X) + p1.Y
+	eq.Intercept = p1.Y - eq.Slope*p1.X
 	return &eq
 }
 

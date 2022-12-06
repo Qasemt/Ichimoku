@@ -31,6 +31,14 @@ type Bar struct {
 	V float64
 	T int64
 }
+type EInterSectionStatus int
+
+const (
+	EInterSectionStatus_NAN      EInterSectionStatus = 0
+	EInterSectionStatus_Find     EInterSectionStatus = 1
+	EInterSectionStatus_Parallel EInterSectionStatus = 2
+)
+
 type ELine int
 
 const (
