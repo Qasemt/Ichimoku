@@ -1,5 +1,5 @@
-[![Go](https://github.com/Qasemt/Ichimoku/actions/workflows/go.yml/badge.svg)](https://github.com/Qasemt/Ichimoku/actions/workflows/go.yml)
-----
+## [![Go](https://github.com/Qasemt/Ichimoku/actions/workflows/go.yml/badge.svg)](https://github.com/Qasemt/Ichimoku/actions/workflows/go.yml)
+
 # Ichimoku
 
 ichimoku indicator
@@ -14,10 +14,10 @@ var (
         .
         old bars
         .
-		{Low: 9250, High: 9520, Close: 9420},
-		{Low: 9230, High: 9550, Close: 9420},
-		{Low: 9350, High: 9710, Close: 9520},
-		{Low: 9390, High: 9680, Close: 9560}
+		{Low: 9250,H: 9520, Close: 9420},
+		{Low: 9230,H: 9550, Close: 9420},
+		{Low: 9350,H: 9710, Close: 9520},
+		{Low: 9390,H: 9680, Close: 9560}
         .
         .
         .

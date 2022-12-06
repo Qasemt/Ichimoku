@@ -1,6 +1,9 @@
 package ichimoku
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type IchimokuStatus struct {
 	TenkenSen ValueLine
@@ -10,9 +13,10 @@ type IchimokuStatus struct {
 	Chiko     ValueLine
 	bar       Bar
 	//-----
-	Status       EIchimokuStatus
-	Folding      bool
-	LeavingCloud bool
+	Status             EIchimokuStatus
+	cloudSwitching     bool
+	leavingCloud       bool
+	CrossKijonAndPrice bool
 }
 
 func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, sencoB ValueLine, chiko ValueLine, bar Bar) *IchimokuStatus {
@@ -25,7 +29,15 @@ func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, senc
 	o.Chiko = chiko
 	o.bar = bar
 	o.Status = IchimokuStatus_NAN
+
+	// if !o.KijonSen.isNil && o.bar.C > o.KijonSen.valLine {
+	// 	o.CrossKijonAndPrice = true
+	// }
+
 	return &o
+}
+func (o *IchimokuStatus) SetCrossKijonAndPrice(cross bool) {
+	o.CrossKijonAndPrice = cross
 }
 func (o *IchimokuStatus) SetStatus(status EIchimokuStatus) {
 	o.Status = status
@@ -35,22 +47,22 @@ func (o *IchimokuStatus) GetStatus() EIchimokuStatus {
 }
 
 func (o *IchimokuStatus) SetLeavingCloud(v bool) {
-	o.LeavingCloud = v
+	o.leavingCloud = v
 }
 func (o *IchimokuStatus) GetLeavingCloud() bool {
-	return o.LeavingCloud
+	return o.leavingCloud
 }
-func (o *IchimokuStatus) SetFolding(v bool) {
-	o.Folding = v
+func (o *IchimokuStatus) SetCloudSwitching(v bool) {
+	o.cloudSwitching = v
 }
-func (o *IchimokuStatus) GetFolding() bool {
-	return o.Folding
+func (o *IchimokuStatus) GetCloudSwitching() bool {
+	return o.cloudSwitching
 }
 func (o *IchimokuStatus) Is_cloud_green() bool {
 	return o.SencoA.valLine > o.SencoB.valLine
 }
 func (o *IchimokuStatus) IsChikoAbovePrice() bool {
-	return o.bar.Close > o.Chiko.valLine
+	return o.bar.C > o.Chiko.valLine
 }
 func (o *IchimokuStatus) Below(intersection float64) bool {
 	if o.SencoA.isNil || o.SencoB.isNil {
@@ -65,24 +77,12 @@ func (o *IchimokuStatus) Above(intersection float64) bool {
 	return intersection > o.SencoA.valLine && intersection > o.SencoB.valLine
 }
 
-func (o *IchimokuStatus) inside(intersection float64) bool {
-	return o.in_float_range(intersection, o.SencoA.valLine, o.SencoB.valLine)
-}
-
-func (o *IchimokuStatus) in_float_range(num float64, range_a float64, range_b float64) bool {
-	if range_a > range_b {
-		return num >= range_b && num <= range_a
-	} else {
-		return num <= range_b && num >= range_a
-	}
-}
 func (o *IchimokuStatus) GetStatusString() string {
 	result := ""
 	switch o.Status {
 	case IchimokuStatus_NAN:
 		result = "nan"
-	case IchimokuStatus_Cross_Inside:
-		result = "cross inside"
+
 	case IchimokuStatus_Cross_Below:
 		result = "cross below"
 	case IchimokuStatus_Cross_Above:
@@ -92,5 +92,7 @@ func (o *IchimokuStatus) GetStatusString() string {
 	return result
 }
 func (o *IchimokuStatus) Print() string {
-	return fmt.Sprintf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v |status : %v |Folding : %v|leaving cloud : %v ", o.TenkenSen.Value(), o.KijonSen.Value(), o.SencoA.Value(), o.SencoB.Value(), o.Chiko.Value(), o.Is_cloud_green(), o.IsChikoAbovePrice(), o.GetStatusString(), o.Folding, o.LeavingCloud)
+	d := time.UnixMilli(o.bar.T).Local().Format("2006 Mon Jan 2 15:04:05 ")
+	return fmt.Sprintf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v |status : %v |Folding : %v|leaving cloud : %v |Cross pric & kijon : %v|%v|%v", o.TenkenSen.Value(), o.KijonSen.Value(), o.SencoA.Value(), o.SencoB.Value(), o.Chiko.Value(), o.Is_cloud_green(), o.IsChikoAbovePrice(), o.GetStatusString(), o.GetCloudSwitching(), o.leavingCloud, o.CrossKijonAndPrice, d, o.bar.T)
+
 }

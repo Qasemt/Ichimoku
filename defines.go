@@ -7,14 +7,29 @@ var (
 	DataNotFill   = errors.New("Data not fill")
 )
 
+type Point struct {
+	X float64
+	Y float64
+}
+
+func NewPoint(x float64, y float64) Point {
+	p := Point{}
+	p.X = x
+	p.Y = y
+	return p
+}
+
 type Equation struct {
 	Slope     float64
 	Intercept float64
 }
 type Bar struct {
-	Low   float64
-	High  float64
-	Close float64
+	L float64
+	H float64
+	C float64
+	O float64
+	V float64
+	T int64
 }
 type ELine int
 
