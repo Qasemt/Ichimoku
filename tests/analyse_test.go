@@ -49,6 +49,22 @@ func TestCrossBelow(t *testing.T) {
 	assert.Equal(t, a.Status, ichimoku.IchimokuStatus_Cross_Below)
 
 }
+func TestIntersection(t *testing.T) {
+	yesday_kijon := 8135.0
+	yesday_tenken := 7975.0
+
+	today_kijon := 8135.0
+	today_tenken := 8135.0
+
+	xline1_point_a := ichimoku.NewPoint(0, yesday_kijon)
+	xline1_point_b := ichimoku.NewPoint(1, today_kijon)
+
+	xline2_point_a := ichimoku.NewPoint(0, yesday_tenken)
+	xline2_point_b := ichimoku.NewPoint(1, today_tenken)
+
+	driver := ichimoku.NewIchimokuDriver()
+	driver.GetIntersectionPoint(xline1_point_a, xline1_point_b, xline2_point_a, xline2_point_b)
+}
 
 var (
 	bars = []ichimoku.Bar{

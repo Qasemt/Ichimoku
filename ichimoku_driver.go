@@ -8,6 +8,7 @@ import (
 type IIchimokuDriver interface {
 	IchimokuRun(bars []Bar) ([]IchimokuStatus, error)
 	AnalyseIchimoku(lines_ichi []IchimokuStatus) (*IchimokuStatus, error)
+	GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) float64
 }
 
 type IchimokuDriver struct {
@@ -122,6 +123,7 @@ func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus
 	// if yesterday.TenkenSen.valLine == 9515 && yesterday.KijonSen.valLine == 9480 {
 	// 	fmt.Println("a")
 	// }
+
 	G := yesterday.TenkenSen.valLine <= yesterday.KijonSen.valLine && today.TenkenSen.valLine > today.KijonSen.valLine
 	R := yesterday.TenkenSen.valLine < yesterday.KijonSen.valLine && today.TenkenSen.valLine >= today.KijonSen.valLine
 
@@ -135,7 +137,11 @@ func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus
 		if today.KijonSen.valLine == today.TenkenSen.valLine {
 			intersection = today.KijonSen.valLine
 		} else {
-			intersection = o.get_intersection_point(yesterday.TenkenSen.valLine, today.TenkenSen.valLine, yesterday.KijonSen.valLine, today.KijonSen.valLine)
+			line1_point_a := NewPoint(0, yesterday.TenkenSen.valLine)
+			line1_point_b := NewPoint(1, today.TenkenSen.valLine)
+			line2_point_a := NewPoint(0, yesterday.KijonSen.valLine)
+			line2_point_b := NewPoint(1, today.KijonSen.valLine)
+			intersection = o.get_intersection_point(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
 		}
 		if today.Below(intersection) {
 			today.SetStatus(IchimokuStatus_Cross_Below)
@@ -219,18 +225,43 @@ func (o *IchimokuDriver) calculate_span_a(tenken ValueLine, kijon ValueLine) Val
 	return NewValueLineNil()
 }
 
-func (o *IchimokuDriver) get_intersection_point(tenken_A float64, tenken_B float64, Kijon_a float64, kijon_b float64) float64 {
+func (o *IchimokuDriver) get_intersection_point(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) float64 {
 
-	tenken := o.getLineEquation(NewPoint(0, tenken_A), NewPoint(1, tenken_B))
-	kijon := o.getLineEquation(NewPoint(0, Kijon_a), NewPoint(1, kijon_b))
+	tenken := o.getLineEquation(line1_pointA, line1_pointB)
+	kijon := o.getLineEquation(line2_pointA, line2_pointB)
 	x_intersection := (kijon.Intercept - tenken.Intercept) / (tenken.Slope - kijon.Slope)
 	y_intersection := (kijon.Slope * x_intersection) + kijon.Intercept
 	return y_intersection
 }
+func (o *IchimokuDriver) GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) float64 {
 
+	var m1, m2 float64
+	m1 = (line1_pointB.Y-line1_pointA.Y)/(line1_pointB.X) - line1_pointA.X
+	m2 = (line2_pointB.Y-line2_pointA.Y)/(line2_pointB.X) - line2_pointA.X
+
+	if m1 == m2 {
+		fmt.Println("Lines are parallel")
+	} else if m1 == -(1 / m2) {
+		var b1, b2, x1, y1, inx, inb float64
+
+		b1 = line1_pointA.Y - m1*line1_pointA.X
+		b2 = line2_pointA.Y - m2*line2_pointA.X
+
+		inx = (m1 - m2)
+		inb = (b2 - b1)
+		x1 = inb / inx
+		y1 = m1*x1 + b1
+
+		fmt.Println("Point of intersection is", x1, ",", y1)
+	} else {
+		fmt.Println("Lines are neither parallel or  perpendicular")
+
+	}
+	return 0
+}
 func (o *IchimokuDriver) getLineEquation(p1 Point, p2 Point) *Equation {
 	eq := Equation{}
-	eq.Slope = (p2.Y - p1.Y) / (p2.X - p1.X)
+	eq.Slope = (p1.Y - p2.Y) / (p1.X - p2.X)
 	eq.Intercept = (-1 * eq.Slope * p1.X) + p1.Y
 	return &eq
 }
