@@ -34,9 +34,10 @@ type Bar struct {
 type EInterSectionStatus int
 
 const (
-	EInterSectionStatus_NAN      EInterSectionStatus = 0
-	EInterSectionStatus_Find     EInterSectionStatus = 1
-	EInterSectionStatus_Parallel EInterSectionStatus = 2
+	EInterSectionStatus_NAN            EInterSectionStatus = 0
+	EInterSectionStatus_Find           EInterSectionStatus = 1
+	EInterSectionStatus_Parallel       EInterSectionStatus = 2
+	EInterSectionStatus_Collision_Find EInterSectionStatus = 1
 )
 
 type ELine int

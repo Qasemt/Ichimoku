@@ -1,14 +1,14 @@
 package ichimoku
 
 import (
-	"fmt"
 	"sort"
 )
 
 type IIchimokuDriver interface {
 	IchimokuRun(bars []Bar) ([]IchimokuStatus, error)
-	AnalyseIchimoku(lines_ichi []IchimokuStatus) (*IchimokuStatus, error)
+	AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error)
 	GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) (EInterSectionStatus, float64)
+	GetCollisionDetection(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) EInterSectionStatus
 }
 
 type IchimokuDriver struct {
@@ -110,6 +110,7 @@ func (xx *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 }
 
 //analyse with two days
+
 func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error) {
 
 	if len(data) != 2 {
@@ -118,54 +119,59 @@ func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus
 
 	today := data[0]
 	yesterday := data[1]
-	var intersection float64
+
 	latest := IchimokuStatus{}
-	// if yesterday.TenkenSen.valLine == 9515 && yesterday.KijonSen.valLine == 9480 {
-	// 	fmt.Println("a")
-	// }
 
-	G := yesterday.TenkenSen.valLine <= yesterday.KijonSen.valLine && today.TenkenSen.valLine > today.KijonSen.valLine
-	R := yesterday.TenkenSen.valLine < yesterday.KijonSen.valLine && today.TenkenSen.valLine >= today.KijonSen.valLine
+	line1_point_a := NewPoint(1.0, yesterday.TenkenSen.valLine)
+	line1_point_b := NewPoint(2.0, today.TenkenSen.valLine)
 
-	// R := yesterday.TenkenSen.valLine > today.TenkenSen.valLine && today.KijonSen.valLine >= yesterday.KijonSen.valLine
-	// G := yesterday.TenkenSen.valLine < today.TenkenSen.valLine && yesterday.KijonSen.valLine <= today.KijonSen.valLine
-	if G || R {
+	line2_point_a := NewPoint(1.0, yesterday.KijonSen.valLine)
+	line2_point_b := NewPoint(2.0, today.KijonSen.valLine)
 
-		// if yesterday.bar.T == 1668490200000 {
-		// 	fmt.Println("a")
-		// }
-		if today.KijonSen.valLine == today.TenkenSen.valLine {
-			intersection = today.KijonSen.valLine
-		} else {
-			line1_point_a := NewPoint(0, yesterday.TenkenSen.valLine)
-			line1_point_b := NewPoint(1, today.TenkenSen.valLine)
-			line2_point_a := NewPoint(0, yesterday.KijonSen.valLine)
-			line2_point_b := NewPoint(1, today.KijonSen.valLine)
-			intersection = o.get_intersection_point(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
-		}
-		if today.Below(intersection) {
+	has_collision1 := o.GetCollisionDetection(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
+
+	if has_collision1 == EInterSectionStatus(IchimokuStatus_NAN) {
+		return nil, nil
+	}
+
+	Line_Eq_A := o.getLineEquation(line1_point_a, line1_point_b) // tenken
+	Line_Eq_B := o.getLineEquation(line2_point_a, line2_point_b) //kijon
+
+	if line1_point_a == line2_point_a {
+		return nil, nil //paraller
+
+	}
+
+	if Line_Eq_A.Slope-Line_Eq_B.Slope == 0 {
+		return nil, nil
+
+	}
+
+	if has_collision1 == EInterSectionStatus_Find {
+		if today.Below(today.TenkenSen.valLine) {
 			today.SetStatus(IchimokuStatus_Cross_Below)
-		} else if today.Above(intersection) {
+		} else if today.Above(today.TenkenSen.valLine) {
 			today.SetStatus(IchimokuStatus_Cross_Above)
-		} else {
-			fmt.Printf("TK cross found but not classified for ")
 		}
+		// else {
+		// 	fmt.Printf("TK cross found but not classified for ")
+		// }
 
 		if o.price_action_leaving_cloud(today, yesterday) && today.Is_cloud_green() {
 			today.SetLeavingCloud(true)
 		}
 
-		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine && today.SencoA.valLine > today.SencoB.valLine || yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
+		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine &&
+			today.SencoA.valLine > today.SencoB.valLine ||
+			yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
 			if today.TenkenSen.valLine >= today.KijonSen.valLine {
 				today.SetCloudSwitching(true)
 			}
 		}
 		latest = today
 		return &latest, nil
-	} else {
-		return nil, nil
 	}
-
+	return nil, nil
 }
 
 //analyse with 26 day or more
@@ -235,23 +241,55 @@ func (o *IchimokuDriver) get_intersection_point(line1_pointA Point, line1_pointB
 }
 func (o *IchimokuDriver) GetIntersectionPoint(line1_pointA Point, line1_pointB Point, line2_pointA Point, line2_pointB Point) (EInterSectionStatus, float64) {
 
-	Eq_A := o.getLineEquation(line1_pointA, line1_pointB) // tenken
-	Eq_B := o.getLineEquation(line2_pointA, line2_pointB) //kijon
+	Line_Eq_A := o.getLineEquation(line1_pointA, line1_pointB) // tenken
+	Line_Eq_B := o.getLineEquation(line2_pointA, line2_pointB) //kijon
 
 	if line1_pointA == line2_pointA {
 		return EInterSectionStatus_Parallel, -1
 
 	}
 
-	if Eq_A.Slope-Eq_B.Slope == 0 {
+	if Line_Eq_A.Slope-Line_Eq_B.Slope == 0 {
 		return EInterSectionStatus_Parallel, -1
 
 	}
-	x_intersection := (Eq_B.Intercept - Eq_A.Intercept) / (Eq_A.Slope - Eq_B.Slope)
-	y_intersection := Eq_A.Slope*x_intersection + Eq_A.Intercept
+	aa := (Line_Eq_A.Intercept - Line_Eq_B.Intercept)
+	bb := (Line_Eq_B.Slope - Line_Eq_A.Slope)
+	x_intersection := aa / bb
+	y_intersection := Line_Eq_A.Slope*x_intersection + Line_Eq_A.Intercept
 
+	round_intersection_point := (x_intersection + y_intersection) / 2
+
+	round_point_b := (line2_pointB.X + line2_pointB.Y) / 2
+	if Line_Eq_A.Slope == 0 && Line_Eq_B.Slope == 0 {
+		return EInterSectionStatus_Parallel, 0
+	} else if x_intersection > 0 && round_point_b > round_intersection_point {
+		return EInterSectionStatus_Find, y_intersection
+	} else if x_intersection < 0 && round_point_b < round_intersection_point {
+		return EInterSectionStatus_Find, y_intersection
+	}
 	//fmt.Printf("Point of intersection is x:%.2f , y:%.2f ", x_intersection, y_intersection)
-	return EInterSectionStatus_Find, y_intersection
+
+	return EInterSectionStatus_NAN, 0
+}
+func (o *IchimokuDriver) GetCollisionDetection(a Point, b Point, c Point, d Point) EInterSectionStatus {
+
+	denominator := ((b.X - a.X) * (d.Y - c.Y)) - ((b.Y - a.Y) * (d.X - c.X))
+	numerator1 := ((a.Y - c.Y) * (d.X - c.X)) - ((a.X - c.X) * (d.Y - c.Y))
+	numerator2 := ((a.Y - c.Y) * (b.X - a.X)) - ((a.X - c.X) * (b.Y - a.Y))
+
+	// Detect coincident lines (has a problem, read below)
+	if denominator == 0 {
+		return EInterSectionStatus_NAN
+	}
+	r := numerator1 / denominator
+	s := numerator2 / denominator
+
+	if (r >= 0 && r <= 1) && (s >= 0 && s <= 1) {
+		//	fmt.Printf("collision detec : a:%v , b:%v, c:%v ,d:%v ,r %v s %v\r\n", a, b, c, d, r, s)
+		return EInterSectionStatus_Collision_Find
+	}
+	return EInterSectionStatus_NAN
 }
 
 func (o *IchimokuDriver) getLineEquation(p1 Point, p2 Point) *Equation {

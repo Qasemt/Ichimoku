@@ -70,6 +70,33 @@ func TestIntersection(t *testing.T) {
 	assert.Equal(t, s, ichimoku.EInterSectionStatus_Parallel)
 	assert.Equal(t, v, -1.0)
 }
+func TestIntersection5(t *testing.T) {
+	yesday_kijon := 8860.0
+	yesday_tenken := 8830.0
+
+	today_kijon := 8860.0
+	today_tenken := 8840.0
+
+	l1x1 := 1.0
+	l1y1 := yesday_tenken
+	l1x2 := 2.0
+	l1y2 := today_tenken
+
+	l2x1 := 1.0
+	l2y1 := yesday_kijon
+	l2x2 := 2.0
+	l2y2 := today_kijon
+	xline1_point_a := ichimoku.NewPoint(l1x1, l1y1)
+	xline1_point_b := ichimoku.NewPoint(l1x2, l1y2)
+
+	xline2_point_a := ichimoku.NewPoint(l2x1, l2y1)
+	xline2_point_b := ichimoku.NewPoint(l2x2, l2y2)
+
+	driver := ichimoku.NewIchimokuDriver()
+	s, v := driver.GetIntersectionPoint(xline1_point_a, xline1_point_b, xline2_point_a, xline2_point_b)
+	assert.Equal(t, s, ichimoku.EInterSectionStatus_Find)
+	assert.Equal(t, v, 8135.0)
+}
 func TestIntersection2(t *testing.T) {
 	yesday_kijon := 8135.0
 	yesday_tenken := 7975.0
@@ -127,6 +154,7 @@ func TestIntersection3(t *testing.T) {
 	l1y1 := 2.0
 	l1x2 := 5.0
 	l1y2 := 7.0
+
 	l2x1 := 3.0
 	l2y1 := 3.0
 	l2x2 := 4.0
