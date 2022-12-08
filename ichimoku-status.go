@@ -13,10 +13,9 @@ type IchimokuStatus struct {
 	Chiko     ValueLine
 	bar       Bar
 	//-----
-	Status             EIchimokuStatus
-	cloudSwitching     bool
-	leavingCloud       bool
-	CrossKijonAndPrice bool
+	Status         EIchimokuStatus
+	cloudSwitching bool
+	leavingCloud   bool
 }
 
 func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, sencoB ValueLine, chiko ValueLine, bar Bar) *IchimokuStatus {
@@ -36,9 +35,7 @@ func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, senc
 
 	return &o
 }
-func (o *IchimokuStatus) SetCrossKijonAndPrice(cross bool) {
-	o.CrossKijonAndPrice = cross
-}
+
 func (o *IchimokuStatus) SetStatus(status EIchimokuStatus) {
 	o.Status = status
 }
@@ -93,6 +90,6 @@ func (o *IchimokuStatus) GetStatusString() string {
 }
 func (o *IchimokuStatus) Print() string {
 	d := time.UnixMilli(o.bar.T).Local().Format("2006 Mon Jan 2 15:04:05 ")
-	return fmt.Sprintf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v |status : %v |Folding : %v|leaving cloud : %v |Cross pric & kijon : %v|%v|%v", o.TenkenSen.Value(), o.KijonSen.Value(), o.SencoA.Value(), o.SencoB.Value(), o.Chiko.Value(), o.Is_cloud_green(), o.IsChikoAbovePrice(), o.GetStatusString(), o.GetCloudSwitching(), o.leavingCloud, o.CrossKijonAndPrice, d, o.bar.T)
+	return fmt.Sprintf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v |status : %v |cloud switching : %v|leaving cloud : %v |%v|%v", o.TenkenSen.Value(), o.KijonSen.Value(), o.SencoA.Value(), o.SencoB.Value(), o.Chiko.Value(), o.Is_cloud_green(), o.IsChikoAbovePrice(), o.GetStatusString(), o.GetCloudSwitching(), o.leavingCloud, d, o.bar.T)
 
 }
