@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+
+	// sourt bar_h1 old [date to new date]
 	bar_h1 := []ichimoku.Bar{
 		{L: 9450, H: 9570, C: 9490, O: 9530, V: 1158096.00, T: 1662525000000},
 		{L: 9450, H: 9550, C: 9480, O: 9530, V: 1041077.00, T: 1662528600000},
@@ -213,10 +215,8 @@ func main() {
 	lines_result := make([]ichimoku.IchimokuStatus, 2)
 
 	for i := len(arr) - 2; i > 0; i-- {
-		today := arr[i]
-		yesterday := arr[i+1]
-		lines_result[0] = today //today
-		lines_result[1] = yesterday
+		lines_result[0] = arr[i]   //today
+		lines_result[1] = arr[i+1] // yeserday
 
 		a, e := driver.AnalyseIchimoku(lines_result)
 

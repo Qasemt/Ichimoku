@@ -43,7 +43,7 @@ const (
 type ELine int
 
 const (
-	Lin_Tenkan_sen   ELine = 9
+	Line_Tenkan_sen  ELine = 9
 	Line_kijon_sen   ELine = 26
 	Line_spanPeriod  ELine = 52
 	Line_chikoPeriod ELine = 26 //-26

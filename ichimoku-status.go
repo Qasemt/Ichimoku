@@ -8,14 +8,23 @@ import (
 type IchimokuStatus struct {
 	TenkenSen ValueLine
 	KijonSen  ValueLine
-	SencoA    ValueLine
-	SencoB    ValueLine
-	Chiko     ValueLine
-	bar       Bar
+	//in the future
+	SencoA ValueLine
+	//in the future
+	SencoB ValueLine
+
+	//SencoA 26 candle in the past
+	SencoALineInPast []Point
+	//SencoB 26 candle in the past
+	SencoBLineInPast []Point
+
+	Chiko ValueLine
+	bar   Bar
 	//-----
 	Status         EIchimokuStatus
 	cloudSwitching bool
 	leavingCloud   bool
+	line_helper    lineHelper
 }
 
 func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, sencoB ValueLine, chiko ValueLine, bar Bar) *IchimokuStatus {
@@ -28,7 +37,7 @@ func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, senc
 	o.Chiko = chiko
 	o.bar = bar
 	o.Status = IchimokuStatus_NAN
-
+	o.line_helper = NewLineHelper()
 	// if !o.KijonSen.isNil && o.bar.C > o.KijonSen.valLine {
 	// 	o.CrossKijonAndPrice = true
 	// }
@@ -36,6 +45,12 @@ func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, senc
 	return &o
 }
 
+func (o *IchimokuStatus) Set_SenCo_A_inPast(buff []Point) {
+	o.SencoALineInPast = buff
+}
+func (o *IchimokuStatus) Set_SenCo_B_inPast(buff []Point) {
+	o.SencoBLineInPast = buff
+}
 func (o *IchimokuStatus) SetStatus(status EIchimokuStatus) {
 	o.Status = status
 }
@@ -65,13 +80,37 @@ func (o *IchimokuStatus) Below(intersection float64) bool {
 	if o.SencoA.isNil || o.SencoB.isNil {
 		return false
 	}
-	return intersection < o.SencoA.valLine && intersection < o.SencoB.valLine
+	point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
+	res_senko_a, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoALineInPast)
+	if err != nil {
+		return false
+	}
+
+	// res_senko_b, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoBLineInPast)
+	// if err != nil {
+	// 	return false
+	// }
+
+	return res_senko_a
+	//return intersection < o.SencoA.valLine && intersection < o.SencoB.valLine
 }
 func (o *IchimokuStatus) Above(intersection float64) bool {
 	if o.SencoA.isNil || o.SencoB.isNil {
 		return false
 	}
-	return intersection > o.SencoA.valLine && intersection > o.SencoB.valLine
+	point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
+	res_senko_a, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoALineInPast)
+	if err != nil {
+		return false
+	}
+
+	// res_senko_b, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoBLineInPast)
+	// if err != nil {
+	// 	return false
+	// }
+
+	return res_senko_a == false
+	//return intersection > o.SencoA.valLine && intersection > o.SencoB.valLine
 }
 
 func (o *IchimokuStatus) GetStatusString() string {
