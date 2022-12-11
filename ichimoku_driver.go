@@ -204,56 +204,24 @@ func (o *IchimokuDriver) DeepTimeAnalyse(data []IchimokuStatus) (*IchimokuStatus
 //
 // find cloud  Span A,B in Past (26 day )
 //
-func (o *IchimokuDriver) find_Clouds_InPast(current int, days *[]IchimokuStatus) ([]Point, []Point) {
+func (o *IchimokuDriver) find_Clouds_InPast(current int, days *[]IchimokuStatus) (Point, Point) {
 
 	if len(*days) < 26 {
-		return nil, nil
+		return NewNilPoint(), NewNilPoint()
 	}
-	var buff_senco_a []Point
-	var buff_senco_b []Point
 
 	rem := len(*days) - current
 	max := 26
-	//tail := len(*days) - current
-	if rem > max {
-		buff_senco_a = make([]Point, max)
-		buff_senco_b = make([]Point, max)
 
-	} else {
-		buff_senco_a = make([]Point, rem)
-		buff_senco_b = make([]Point, rem)
-		max = rem
-	}
-	defer func() {
-		buff_senco_a = nil
-		buff_senco_b = nil
-	}()
-
-	counter := max - 1
-	start := current
-	i := start
-	for {
-
-		if counter < 0 {
-			break
-		}
-		if rem <= 0 {
-			break
-		}
-
-		buff_senco_a[counter] = NewPoint(float64((*days)[i].bar.T/1000), (*days)[i].SencoA.valLine)
-		buff_senco_b[counter] = NewPoint(float64((*days)[i].bar.T/1000), (*days)[i].SencoB.valLine)
-		counter--
-		i++
-
+	if rem < max {
+		return NewNilPoint(), NewNilPoint()
 	}
 
-	//for i := 25; i > 0; i-- {
+	index := current + 25
+	c := (*days)[index]
+	buff_senco_a := NewPoint(float64(c.bar.T/1000), c.SencoA.valLine)
+	buff_senco_b := NewPoint(float64(c.bar.T/1000), c.SencoB.valLine)
 
-	// buff_senco_a = append(buff_senco_a, NewPoint(float64((*days)[i].bar.T/1000), (*days)[i].SencoA.valLine))
-
-	// buff_senco_b = append(buff_senco_b, NewPoint(float64((*days)[i].bar.T/1000), (*days)[i].SencoB.valLine))
-	//}
 	return buff_senco_a, buff_senco_b
 }
 

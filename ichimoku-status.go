@@ -14,9 +14,9 @@ type IchimokuStatus struct {
 	SencoB ValueLine
 
 	//SencoA 26 candle in the past
-	SencoALineInPast []Point
+	SencoALineInPast Point
 	//SencoB 26 candle in the past
-	SencoBLineInPast []Point
+	SencoBLineInPast Point
 
 	Chiko ValueLine
 	bar   Bar
@@ -45,11 +45,11 @@ func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, senc
 	return &o
 }
 
-func (o *IchimokuStatus) Set_SenCo_A_inPast(buff []Point) {
-	o.SencoALineInPast = buff
+func (o *IchimokuStatus) Set_SenCo_A_inPast(p Point) {
+	o.SencoALineInPast = p
 }
-func (o *IchimokuStatus) Set_SenCo_B_inPast(buff []Point) {
-	o.SencoBLineInPast = buff
+func (o *IchimokuStatus) Set_SenCo_B_inPast(p Point) {
+	o.SencoBLineInPast = p
 }
 func (o *IchimokuStatus) SetStatus(status EIchimokuStatus) {
 	o.Status = status
@@ -80,12 +80,12 @@ func (o *IchimokuStatus) CloudStatus(intersection float64) EIchimokuStatus {
 	if o.SencoA.isNil || o.SencoB.isNil {
 		return IchimokuStatus_NAN
 	}
-	if len(o.SencoALineInPast) < 26 {
+	if o.SencoALineInPast.isNil || o.SencoBLineInPast.isNil {
 		return IchimokuStatus_NAN
 	}
 	// point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
-	sen_B := o.SencoBLineInPast[0] //Senko B in_26_candle_pass
-	sen_A := o.SencoALineInPast[0] //Senko A in_26_candle_pass
+	sen_B := o.SencoBLineInPast //Senko B in_26_candle_pass
+	sen_A := o.SencoALineInPast //Senko A in_26_candle_pass
 	if sen_A.Y > intersection && sen_B.Y > intersection {
 		return IchimokuStatus_Cross_Below
 	} else if sen_A.Y < intersection && sen_B.Y < intersection {

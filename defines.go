@@ -8,14 +8,23 @@ var (
 )
 
 type Point struct {
-	X float64
-	Y float64
+	X     float64
+	Y     float64
+	isNil bool
 }
 
 func NewPoint(x float64, y float64) Point {
 	p := Point{}
 	p.X = x
 	p.Y = y
+	p.isNil = false
+	return p
+}
+func NewNilPoint() Point {
+	p := Point{}
+	p.X = -1
+	p.Y = -1
+	p.isNil = true
 	return p
 }
 
