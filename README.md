@@ -33,13 +33,19 @@ func (o *IchimokuDriver) GetCollisionDetection(a Point, b Point, c Point, d Poin
 Result :
 
 ```console
-Find ichi 8685|8690|8687.5|8710|8500|G:false,Chiko UP :true |status : cross below |Folding : false|leaving cloud : false |Cross pric & kijon : false|2022 Tue Oct 18 10:00:00 |1666074600000
+
+calc ichi from Last 100 days
+
+ Find ichi 8630|8630|8630|8715|8450|G:false,Chiko UP :true |status : cross below |cloud switching : false|leaving cloud : false |2022 Tue Oct 11 10:00:00 |1665469800000
 ____
- Find ichi 8135|8135|8135|8300|8520|G:false,Chiko UP :false |status : nan |Folding : false|leaving cloud : false |Cross pric & kijon : false|2022 Tue Nov 1 10:00:00 |1667284200000
+ Find ichi 8685|8690|8687.5|8710|8500|G:false,Chiko UP :true |status : cross inside |cloud switching : false|leaving cloud : false |2022 Tue Oct 18 10:00:00 |1666074600000
 ____
- Find ichi 9485|9525|9505|8790|9490|G:true,Chiko UP :true |status : nan |Folding : false|leaving cloud : false |Cross pric & kijon : false|2022 Tue Nov 15 11:00:00 |1668497400000
+ Find ichi 8135|8135|8135|8300|8520|G:false,Chiko UP :false |status : cross below |cloud switching : false|leaving cloud : false |2022 Tue Nov 1 10:00:00 |1667284200000
 ____
- Find ichi 9570|9545|9557.5|8960|9410|G:true,Chiko UP :true |status : cross above |Folding : false|leaving cloud : false |Cross pric & kijon : false|2022 Wed Nov 16 12:00:00 |1668587400000
+ Find ichi 9485|9525|9505|8790|9490|G:true,Chiko UP :true |status : cross above |cloud switching : false|leaving cloud : false |2022 Tue Nov 15 11:00:00 |1668497400000
+____
+ Find ichi 9570|9545|9557.5|8960|9410|G:true,Chiko UP :true |status : cross above |cloud switching : false|leaving cloud : false |2022 Wed Nov 16 12:00:00 |1668587400000
+
 ```
 
 ---
