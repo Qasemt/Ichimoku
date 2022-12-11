@@ -15,9 +15,10 @@ func TestInside(t *testing.T) {
 	//	d := mock_ichimoku.NewMockIIchimokuDriver(ctl)
 	//	fmt.Println("a", d)
 
-	today := ichimoku.NewIchimokuStatus(ichimoku.NewValue(-1), ichimoku.NewValue(-1), ichimoku.NewValue(8380), ichimoku.NewValue(2), ichimoku.NewValue(2), ichimoku.Bar{L: 8380, H: 8610, C: 8440})
+	today := ichimoku.NewIchimokuStatus(ichimoku.NewValue(8705), ichimoku.NewValue(8710), ichimoku.NewValue(8707), ichimoku.NewValue(8930), ichimoku.NewValue(8830), ichimoku.Bar{L: 8400, H: 8460, C: 8440, O: 8440, V: 906352, T: 1664699400000})
 
-	yesterday := ichimoku.NewIchimokuStatus(ichimoku.NewValue(-0.5), ichimoku.NewValue(-2), ichimoku.NewValue(1.5), ichimoku.NewValue(2), ichimoku.NewValue(8430), ichimoku.Bar{L: 7820, H: 8210, C: 8200})
+	yesterday := ichimoku.NewIchimokuStatus(ichimoku.NewValue(8720), ichimoku.NewValue(8710), ichimoku.NewValue(8715), ichimoku.NewValue(8940), ichimoku.NewValue(8870), ichimoku.Bar{
+		L: 8430, H: 8480, C: 8450, O: 8460, V: 652416, T: 1664695800000})
 
 	lines_result := make([]ichimoku.IchimokuStatus, 2)
 	lines_result[0] = *today //today
@@ -25,7 +26,7 @@ func TestInside(t *testing.T) {
 
 	a, e := driver.AnalyseIchimoku(lines_result)
 	assert.Empty(t, e)
-	assert.Equal(t, a.Status, ichimoku.IchimokuStatus_Cross_Below)
+	assert.Equal(t, a.Status, ichimoku.IchimokuStatus_Cross_Above)
 
 }
 
