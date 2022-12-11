@@ -76,41 +76,37 @@ func (o *IchimokuStatus) Is_cloud_green() bool {
 func (o *IchimokuStatus) IsChikoAbovePrice() bool {
 	return o.bar.C > o.Chiko.valLine
 }
-func (o *IchimokuStatus) Below(intersection float64) bool {
+func (o *IchimokuStatus) CloudStatus(intersection float64) EIchimokuStatus {
 	if o.SencoA.isNil || o.SencoB.isNil {
-		return false
+		return IchimokuStatus_NAN
 	}
-	point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
-	res_senko_a, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoALineInPast)
-	if err != nil {
-		return false
+	if len(o.SencoALineInPast) < 26 {
+		return IchimokuStatus_NAN
 	}
+	// point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
+	sen_B := o.SencoBLineInPast[0] //Senko B in_26_candle_pass
+	sen_A := o.SencoALineInPast[0] //Senko A in_26_candle_pass
+	if sen_A.Y > intersection && sen_B.Y > intersection {
+		return IchimokuStatus_Cross_Below
+	} else if sen_A.Y < intersection && sen_B.Y < intersection {
+		return IchimokuStatus_Cross_Above
+	} else if sen_A.Y < intersection && sen_B.Y > intersection || sen_A.Y > intersection && sen_B.Y < intersection {
+		return IchimokuStatus_Cross_Inside
+	}
+
+	return IchimokuStatus_NAN
+	// res_senko_a, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoALineInPast)
+	// if err != nil {
+	// 	return false
+	// }
 
 	// res_senko_b, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoBLineInPast)
 	// if err != nil {
 	// 	return false
 	// }
 
-	return res_senko_a
+	//return res_senko_a == EPointLocation_below
 	//return intersection < o.SencoA.valLine && intersection < o.SencoB.valLine
-}
-func (o *IchimokuStatus) Above(intersection float64) bool {
-	if o.SencoA.isNil || o.SencoB.isNil {
-		return false
-	}
-	point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
-	res_senko_a, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoALineInPast)
-	if err != nil {
-		return false
-	}
-
-	// res_senko_b, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoBLineInPast)
-	// if err != nil {
-	// 	return false
-	// }
-
-	return res_senko_a == false
-	//return intersection > o.SencoA.valLine && intersection > o.SencoB.valLine
 }
 
 func (o *IchimokuStatus) GetStatusString() string {
@@ -123,6 +119,8 @@ func (o *IchimokuStatus) GetStatusString() string {
 		result = "cross below"
 	case IchimokuStatus_Cross_Above:
 		result = "cross above"
+	case IchimokuStatus_Cross_Inside:
+		result = "cross inside"
 	}
 
 	return result

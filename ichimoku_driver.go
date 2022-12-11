@@ -1,6 +1,7 @@
 package ichimoku
 
 import (
+	"fmt"
 	"sort"
 )
 
@@ -49,11 +50,11 @@ func (o *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 	if len(bars) == 0 {
 		return nil, DataNotFill
 	}
-
+	fmt.Println("calc ichi from Last 100 days")
 	o.bars = bars
 	days := []IchimokuStatus{}
 	bars_len := len(o.bars) - 1
-	for day := 0; day < 100; day++ {
+	for day := 0; day < 135; day++ {
 
 		//for day := 3; day >= 0; day-- {
 		tenkenLine := o.calcLine(Line_Tenkan_sen, o.loadbars(bars_len-int(Line_Tenkan_sen)-day, bars_len-day))
@@ -125,13 +126,13 @@ func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus
 
 	latest := IchimokuStatus{}
 
-	line1_point_a := NewPoint(1.0, yesterday.TenkenSen.valLine)
-	line1_point_b := NewPoint(2.0, today.TenkenSen.valLine)
+	line1_point_a := NewPoint(float64(yesterday.bar.T), yesterday.TenkenSen.valLine)
+	line1_point_b := NewPoint(float64(today.bar.T), today.TenkenSen.valLine)
 
-	line2_point_a := NewPoint(1.0, yesterday.KijonSen.valLine)
-	line2_point_b := NewPoint(2.0, today.KijonSen.valLine)
+	line2_point_a := NewPoint(float64(yesterday.bar.T), yesterday.KijonSen.valLine)
+	line2_point_b := NewPoint(float64(today.bar.T), today.KijonSen.valLine)
 
-	has_collision1 := o.line_helper.GetCollisionDetection(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
+	has_collision1, intersection := o.line_helper.GetCollisionDetection(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
 
 	if has_collision1 == EInterSectionStatus(IchimokuStatus_NAN) {
 		return nil, nil
@@ -152,9 +153,8 @@ func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus
 
 	if has_collision1 == EInterSectionStatus_Find {
 
-		if today.Below(today.bar.C) {
-			today.SetStatus(IchimokuStatus_Cross_Below)
-		}
+		today.SetStatus(today.CloudStatus(intersection))
+
 		//  else if today.Above(today.bar.C) {
 		// 	today.SetStatus(IchimokuStatus_Cross_Above)
 		// }

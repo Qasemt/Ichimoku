@@ -31,6 +31,7 @@ type Bar struct {
 	V float64
 	T int64
 }
+
 type EInterSectionStatus int
 
 const (
