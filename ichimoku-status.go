@@ -7,49 +7,60 @@ import (
 
 type IchimokuStatus struct {
 	TenkenSen ValueLine
-	KijonSen  ValueLine
-	//in the future
-	SencoA ValueLine
-	//in the future
-	SencoB ValueLine
 
-	//SencoA 26 candle in the past
-	SencoALineInPast Point
-	//SencoB 26 candle in the past
-	SencoBLineInPast Point
+	//_______________
 
-	Chiko ValueLine
-	bar   Bar
+	KijonSen ValueLine
+
+	//in the future
+	SenKoA_Shifted26 ValueLine
+
+	//in the future
+	SenKoB_Shifted26 ValueLine
+
+	//extract value sen A & B from 26 candle past (26 shift forward in calc ichimoku)
+	//SencoA 26 candle in the past (for check)
+	SencoA_Past Point
+	//extract value sen A & B from 26 candle past (26 shift forward in calc ichimoku)
+	//SencoB 26 candle in the past (for check)
+	SencoB_Past Point
+
+	ChikoSpan Bar //close bar
+
+	bar Bar
 	//-----
 	Status         EIchimokuStatus
 	cloudSwitching bool
-	leavingCloud   bool
-	line_helper    lineHelper
+
+	line_helper lineHelper
 }
 
-func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, sencoA ValueLine, sencoB ValueLine, chiko ValueLine, bar Bar) *IchimokuStatus {
+func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, senKoA_Shifted26 ValueLine, senKoB_Shifted52 ValueLine, chiko_span Bar, bar Bar) *IchimokuStatus {
 
 	o := IchimokuStatus{}
+
 	o.TenkenSen = tenken
+
 	o.KijonSen = kijon
-	o.SencoA = sencoA
-	o.SencoB = sencoB
-	o.Chiko = chiko
+
+	o.SenKoA_Shifted26 = senKoA_Shifted26
+	o.SenKoB_Shifted26 = senKoB_Shifted52
+
+	o.ChikoSpan = chiko_span
 	o.bar = bar
 	o.Status = IchimokuStatus_NAN
 	o.line_helper = NewLineHelper()
-	// if !o.KijonSen.isNil && o.bar.C > o.KijonSen.valLine {
-	// 	o.CrossKijonAndPrice = true
-	// }
 
 	return &o
 }
-
-func (o *IchimokuStatus) Set_SenCo_A_inPast(p Point) {
-	o.SencoALineInPast = p
+func (o *IchimokuStatus) SetChikoSpan(v Bar) {
+	o.ChikoSpan = v
 }
-func (o *IchimokuStatus) Set_SenCo_B_inPast(p Point) {
-	o.SencoBLineInPast = p
+func (o *IchimokuStatus) Set_SenCo_A_Past(p Point) {
+	o.SencoA_Past = p
+}
+func (o *IchimokuStatus) Set_SenCo_B_Past(p Point) {
+	o.SencoB_Past = p
 }
 func (o *IchimokuStatus) SetStatus(status EIchimokuStatus) {
 	o.Status = status
@@ -58,12 +69,6 @@ func (o *IchimokuStatus) GetStatus() EIchimokuStatus {
 	return o.Status
 }
 
-func (o *IchimokuStatus) SetLeavingCloud(v bool) {
-	o.leavingCloud = v
-}
-func (o *IchimokuStatus) GetLeavingCloud() bool {
-	return o.leavingCloud
-}
 func (o *IchimokuStatus) SetCloudSwitching(v bool) {
 	o.cloudSwitching = v
 }
@@ -71,21 +76,21 @@ func (o *IchimokuStatus) GetCloudSwitching() bool {
 	return o.cloudSwitching
 }
 func (o *IchimokuStatus) Is_cloud_green() bool {
-	return o.SencoA.valLine > o.SencoB.valLine
+	return o.SenKoA_Shifted26.valLine > o.SenKoB_Shifted26.valLine
 }
 func (o *IchimokuStatus) IsChikoAbovePrice() bool {
-	return o.bar.C > o.Chiko.valLine
+	return o.ChikoSpan.H > o.bar.C
 }
 func (o *IchimokuStatus) CloudStatus(intersection float64) EIchimokuStatus {
-	if o.SencoA.isNil || o.SencoB.isNil {
+	if o.SenKoA_Shifted26.isNil || o.SenKoB_Shifted26.isNil {
 		return IchimokuStatus_NAN
 	}
-	if o.SencoALineInPast.isNil || o.SencoBLineInPast.isNil {
+	if o.SencoA_Past.isNil || o.SencoB_Past.isNil {
 		return IchimokuStatus_NAN
 	}
-	// point_from_price := NewPoint(float64(o.bar.T/1000), o.bar.C)
-	sen_B := o.SencoBLineInPast //Senko B in_26_candle_pass
-	sen_A := o.SencoALineInPast //Senko A in_26_candle_pass
+
+	sen_B := o.SencoB_Past //Senko B in_26_candle_pass
+	sen_A := o.SencoA_Past //Senko A in_26_candle_pass
 	if sen_A.Y > intersection && sen_B.Y > intersection {
 		return IchimokuStatus_Cross_Below
 	} else if sen_A.Y < intersection && sen_B.Y < intersection {
@@ -95,18 +100,7 @@ func (o *IchimokuStatus) CloudStatus(intersection float64) EIchimokuStatus {
 	}
 
 	return IchimokuStatus_NAN
-	// res_senko_a, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoALineInPast)
-	// if err != nil {
-	// 	return false
-	// }
 
-	// res_senko_b, err := o.line_helper.GetCollisionWithLine(point_from_price, o.SencoBLineInPast)
-	// if err != nil {
-	// 	return false
-	// }
-
-	//return res_senko_a == EPointLocation_below
-	//return intersection < o.SencoA.valLine && intersection < o.SencoB.valLine
 }
 
 func (o *IchimokuStatus) GetStatusString() string {
@@ -127,6 +121,6 @@ func (o *IchimokuStatus) GetStatusString() string {
 }
 func (o *IchimokuStatus) Print() string {
 	d := time.UnixMilli(o.bar.T).Local().Format("2006 Mon Jan 2 15:04:05 ")
-	return fmt.Sprintf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v |status : %v |cloud switching : %v|leaving cloud : %v |%v|%v", o.TenkenSen.Value(), o.KijonSen.Value(), o.SencoA.Value(), o.SencoB.Value(), o.Chiko.Value(), o.Is_cloud_green(), o.IsChikoAbovePrice(), o.GetStatusString(), o.GetCloudSwitching(), o.leavingCloud, d, o.bar.T)
+	return fmt.Sprintf("ichi %v|%v|%v|%v|%v|G:%v,Chiko UP :%v |status : %v |%v|%v", o.TenkenSen.Value(), o.KijonSen.Value(), o.SenKoA_Shifted26.Value(), o.SenKoB_Shifted26.Value(), o.ChikoSpan.C, o.Is_cloud_green(), o.IsChikoAbovePrice(), o.GetStatusString(), d, o.bar.T)
 
 }

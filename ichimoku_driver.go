@@ -2,14 +2,21 @@ package ichimoku
 
 import (
 	"fmt"
-	"sort"
+	"time"
 )
 
 type IIchimokuDriver interface {
+	Init(bars *[]Bar, numberOfRead int) ([]IchimokuStatus, error)
 	//
 	// out result array sorte : [new day -to- old day]
-	IchimokuRun(bars []Bar) ([]IchimokuStatus, error)
-	AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error)
+	//once call per asset
+	MakeIchimokuInPast(bars *[]Bar, numberOfRead int) ([]IchimokuStatus, error)
+
+	//once call per asset
+	PreAnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error)
+
+	//Analys Trigger Cross tenken & kijon sen
+	AnalyseTriggerCross(previous IchimokuStatus, bar26FromLatest IchimokuStatus, bars []Bar) (*IchimokuStatus, error)
 }
 
 type IchimokuDriver struct {
@@ -42,44 +49,49 @@ func (xx *IchimokuDriver) loadbars(from int, to int) []Bar {
 	return xx.bars[from:to]
 
 }
+func (o *IchimokuDriver) Init(bars *[]Bar, numberOfRead int) ([]IchimokuStatus, error) {
+
+	a, e := o.MakeIchimokuInPast(bars, numberOfRead)
+	if e != nil {
+		return nil, e
+	}
+
+	o.ReViewBar(&a)
+
+	return a, nil
+}
 
 //
 // out result array sorte : [new day -to- old day]
-func (o *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
+func (o *IchimokuDriver) MakeIchimokuInPast(bars *[]Bar, numberOfRead int) ([]IchimokuStatus, error) {
 
-	if len(bars) == 0 {
+	if len(*bars) == 0 {
 		return nil, DataNotFill
 	}
-	fmt.Println("calc ichi from Last 100 days")
-	o.bars = bars
+	if len(*bars) < numberOfRead {
+		return nil, NotEnoughData
+	}
+	fmt.Printf("Calc ichi from Last %v days", numberOfRead)
+	o.bars = *bars
+
+	//days:sorted descending
 	days := []IchimokuStatus{}
-	bars_len := len(o.bars) - 1
-	for day := 0; day < 135; day++ {
+	bars_index_with_zero := len(o.bars)
+	for day := 0; day < numberOfRead; day++ {
 
 		//for day := 3; day >= 0; day-- {
-		tenkenLine := o.calcLine(Line_Tenkan_sen, o.loadbars(bars_len-int(Line_Tenkan_sen)-day, bars_len-day))
-		kijonLine := o.calcLine(Line_kijon_sen, o.loadbars(bars_len-int(Line_kijon_sen)-day, bars_len-day))
+		tenkenLine := o.calcLine(Line_Tenkan_sen, o.loadbars(bars_index_with_zero-int(Line_Tenkan_sen)-day, bars_index_with_zero-day))
+		kijonLine := o.calcLine(Line_kijon_sen, o.loadbars(bars_index_with_zero-int(Line_kijon_sen)-day, bars_index_with_zero-day))
 
 		span_a := o.calculate_span_a(tenkenLine, kijonLine)
-		span_b := o.calcLine(Line_spanPeriod, o.loadbars(bars_len-int(Line_spanPeriod)-day, bars_len-day))
+		span_b := o.calcLine(Line_spanPeriod, o.loadbars(bars_index_with_zero-int(Line_spanPeriod)-day, bars_index_with_zero-day))
+		chiko_index := (bars_index_with_zero - int(Line_chikoPeriod) - day) - 1
+		cheko_span := o.bars[chiko_index]
 
-		chiko_index := len(o.bars) - int(Line_chikoPeriod) - day
-		var chiko ValueLine
-
-		if chiko_index >= 0 && len(o.bars) > chiko_index {
-			chiko.SetValue(o.bars[chiko_index].C)
-		} else {
-			if len(days) == 0 {
-				return nil, NotEnoughData
-			} else {
-				break
-			}
-
-		}
 		var latestPrice Bar
-		latestPriceIndex := bars_len - day
+		latestPriceIndex := bars_index_with_zero - day
 		if len(o.bars) >= latestPriceIndex {
-			latestPrice = o.bars[bars_len-day]
+			latestPrice = o.bars[(bars_index_with_zero-1)-day]
 		} else {
 			if len(days) == 0 {
 				return nil, NotEnoughData
@@ -91,7 +103,7 @@ func (o *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 
 		if !tenkenLine.isNil && !kijonLine.isNil && !span_a.isNil && !span_b.isNil {
 
-			ichi := NewIchimokuStatus(tenkenLine, kijonLine, span_a, span_b, chiko, latestPrice)
+			ichi := NewIchimokuStatus(tenkenLine, kijonLine, span_a, span_b, cheko_span, latestPrice)
 			days = append(days, *ichi)
 		} else {
 			if len(days) == 0 {
@@ -102,35 +114,39 @@ func (o *IchimokuDriver) IchimokuRun(bars []Bar) ([]IchimokuStatus, error) {
 		}
 	}
 
-	for i := 0; i < len(days); i++ {
-		item := &days[i]
-		sen_a, sen_b := o.find_Clouds_InPast(i, &days)
-		item.Set_SenCo_A_inPast(sen_a)
-		item.Set_SenCo_B_inPast(sen_b)
-
-	}
 	return days, nil
 
 }
 
 //analyse with two days
+func (o *IchimokuDriver) ReViewBar(days *[]IchimokuStatus) {
 
-func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error) {
+	for day_index := 0; day_index < len(*days); day_index++ {
+		item := &(*days)[day_index]
+		sen_a, sen_b := o.Calc_Cloud_InPast(day_index, days)
+		item.Set_SenCo_A_Past(sen_a)
+		item.Set_SenCo_B_Past(sen_b)
+	}
+
+}
+
+//analyse with two days
+func (o *IchimokuDriver) PreAnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus, error) {
 
 	if len(data) != 2 {
 		return nil, NotEnoughData
 	}
 
-	today := data[0]
-	yesterday := data[1]
+	current := data[0]
+	previous := data[1]
 
 	latest := IchimokuStatus{}
 
-	line1_point_a := NewPoint(float64(yesterday.bar.T), yesterday.TenkenSen.valLine)
-	line1_point_b := NewPoint(float64(today.bar.T), today.TenkenSen.valLine)
+	line1_point_a := NewPoint(float64(previous.bar.T), previous.TenkenSen.valLine)
+	line1_point_b := NewPoint(float64(current.bar.T), current.TenkenSen.valLine)
 
-	line2_point_a := NewPoint(float64(yesterday.bar.T), yesterday.KijonSen.valLine)
-	line2_point_b := NewPoint(float64(today.bar.T), today.KijonSen.valLine)
+	line2_point_a := NewPoint(float64(previous.bar.T), previous.KijonSen.valLine)
+	line2_point_b := NewPoint(float64(current.bar.T), current.KijonSen.valLine)
 
 	has_collision1, intersection := o.line_helper.GetCollisionDetection(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
 
@@ -153,65 +169,39 @@ func (o *IchimokuDriver) AnalyseIchimoku(data []IchimokuStatus) (*IchimokuStatus
 
 	if has_collision1 == EInterSectionStatus_Find {
 
-		today.SetStatus(today.CloudStatus(intersection))
+		current.SetStatus(current.CloudStatus(intersection))
 
-		//  else if today.Above(today.bar.C) {
-		// 	today.SetStatus(IchimokuStatus_Cross_Above)
-		// }
-		// else {
-		// 	fmt.Printf("TK cross found but not classified for ")
-		// }
-
-		if o.price_action_leaving_cloud(today, yesterday) && today.Is_cloud_green() {
-			today.SetLeavingCloud(true)
-		}
-
-		if yesterday.SencoA.valLine <= yesterday.SencoB.valLine &&
-			today.SencoA.valLine > today.SencoB.valLine ||
-			yesterday.SencoA.valLine < yesterday.SencoB.valLine && today.SencoA.valLine >= today.SencoB.valLine {
-			if today.TenkenSen.valLine >= today.KijonSen.valLine {
-				today.SetCloudSwitching(true)
-			}
-		}
-		latest = today
+		current.SetCloudSwitching(o.isSwitchCloud(previous, current))
+		latest = current
 		return &latest, nil
 	}
 	return nil, nil
 }
 
-//
-//analyse with 26 day or more
-//
-func (o *IchimokuDriver) DeepTimeAnalyse(data []IchimokuStatus) (*IchimokuStatus, error) {
+//analyse with two days
+func (o *IchimokuDriver) isSwitchCloud(previous IchimokuStatus, current IchimokuStatus) bool {
 
-	if len(data) != 0 || len(data) < 54 {
-		return nil, NotEnoughData
-	}
-	//first_cross_after_26 := false
-	for i := 0; i < len(data); i++ {
-		s := data[i]
-
-		if s.bar.C < s.KijonSen.valLine {
-
+	if previous.SenKoA_Shifted26.valLine <= previous.SenKoB_Shifted26.valLine &&
+		current.SenKoA_Shifted26.valLine > current.SenKoB_Shifted26.valLine ||
+		previous.SenKoA_Shifted26.valLine < previous.SenKoB_Shifted26.valLine && current.SenKoA_Shifted26.valLine >= current.SenKoB_Shifted26.valLine {
+		if current.TenkenSen.valLine >= current.KijonSen.valLine {
+			return true
 		}
-
-		return nil, nil
 	}
-
-	return nil, nil
+	return false
 }
 
 //
 // find cloud  Span A,B in Past (26 day )
 //
-func (o *IchimokuDriver) find_Clouds_InPast(current int, days *[]IchimokuStatus) (Point, Point) {
+func (o *IchimokuDriver) Calc_Cloud_InPast(current int, days *[]IchimokuStatus) (Point, Point) {
 
 	if len(*days) < 26 {
 		return NewNilPoint(), NewNilPoint()
 	}
 
 	rem := len(*days) - current
-	max := 26
+	max := 26 //from 26 bar in past  (find Shift index)
 
 	if rem < max {
 		return NewNilPoint(), NewNilPoint()
@@ -219,8 +209,8 @@ func (o *IchimokuDriver) find_Clouds_InPast(current int, days *[]IchimokuStatus)
 
 	index := current + 25
 	c := (*days)[index]
-	buff_senco_a := NewPoint(float64(c.bar.T/1000), c.SencoA.valLine)
-	buff_senco_b := NewPoint(float64(c.bar.T/1000), c.SencoB.valLine)
+	buff_senco_a := NewPoint(float64(c.bar.T/1000), c.SenKoA_Shifted26.valLine)
+	buff_senco_b := NewPoint(float64(c.bar.T/1000), c.SenKoB_Shifted26.valLine)
 
 	return buff_senco_a, buff_senco_b
 }
@@ -271,32 +261,67 @@ func (o *IchimokuDriver) getLineEquation(p1 Point, p2 Point) *Equation {
 	return &eq
 }
 
-func (o *IchimokuDriver) price_action_leaving_cloud(today IchimokuStatus, yesterday IchimokuStatus) bool {
-	if o.inside_range([]float64{yesterday.bar.H, yesterday.bar.L}, []float64{yesterday.SencoA.valLine, yesterday.SencoB.valLine}) {
-		var comparison float64
+//Analys Trigger Cross tenken & kijon sen
+func (o *IchimokuDriver) AnalyseTriggerCross(previous IchimokuStatus, bar26FromLatest IchimokuStatus, bars []Bar) (*IchimokuStatus, error) {
 
-		if today.Is_cloud_green() {
-			comparison = today.SencoA.valLine
-		} else {
-			return false
-		}
-		if today.bar.C > comparison {
-			return true
-		}
+	find, e := o.MakeIchimokuInPast(&o.bars, 52)
+
+	if e != nil {
+		return nil, e
 	}
-	return false
-}
 
-func (o *IchimokuDriver) inside_range(data []float64, range1 []float64) bool {
-	return o.minArr(data) > o.minArr(range1) && o.maxArr(data) < o.maxArr(range1)
-}
+	if bar26FromLatest.SencoA_Past.isNil || bar26FromLatest.SencoB_Past.isNil {
+		return nil, DataNotFill
+	}
 
-func (o *IchimokuDriver) minArr(v []float64) float64 {
-	sort.Float64s(v)
-	return v[0]
-}
+	if len(find) == 0 {
+		return nil, nil
+	}
+	current := find[0]
 
-func (o *IchimokuDriver) maxArr(v []float64) float64 {
-	sort.Float64s(v)
-	return v[len(v)-1]
+	time_current := time.UnixMilli(current.bar.T)
+	time_previous := time.UnixMilli(previous.bar.T)
+
+	if !time_current.After(time_previous) {
+		return nil, Date_is_not_greater_then_previous
+	}
+
+	latest := IchimokuStatus{}
+
+	line1_point_a := NewPoint(float64(previous.bar.T), previous.TenkenSen.valLine)
+	line1_point_b := NewPoint(float64(current.bar.T), current.TenkenSen.valLine)
+
+	line2_point_a := NewPoint(float64(previous.bar.T), previous.KijonSen.valLine)
+	line2_point_b := NewPoint(float64(current.bar.T), current.KijonSen.valLine)
+
+	has_collision1, intersection := o.line_helper.GetCollisionDetection(line1_point_a, line1_point_b, line2_point_a, line2_point_b)
+
+	if has_collision1 == EInterSectionStatus(IchimokuStatus_NAN) {
+		return nil, nil
+	}
+
+	Line_Eq_A := o.getLineEquation(line1_point_a, line1_point_b) // tenken
+	Line_Eq_B := o.getLineEquation(line2_point_a, line2_point_b) //kijon
+
+	if line1_point_a == line2_point_a {
+		return nil, nil //paraller
+
+	}
+
+	if Line_Eq_A.Slope-Line_Eq_B.Slope == 0 {
+		return nil, nil
+
+	}
+
+	if has_collision1 == EInterSectionStatus_Find {
+
+		current.SetStatus(current.CloudStatus(intersection))
+
+		current.SetCloudSwitching(o.isSwitchCloud(previous, current))
+		latest = current
+
+		return &latest, nil
+	}
+	return nil, nil
+
 }

@@ -3,8 +3,9 @@ package ichimoku
 import "errors"
 
 var (
-	NotEnoughData = errors.New("Not Enough Data")
-	DataNotFill   = errors.New("Data not fill")
+	NotEnoughData                     = errors.New("Not Enough Data")
+	DataNotFill                       = errors.New("Data not fill")
+	Date_is_not_greater_then_previous = errors.New("date is not greater than previous ")
 )
 
 type Point struct {

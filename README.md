@@ -4,6 +4,21 @@ Source :
 
 - [Intersection Point Of Two Lines][1]
 
+### Calculation
+
+```
+
+There are five plots that make up the Ichimoku Cloud indicator. Their names and calculations are:
+
+TenkanSen (Conversion Line): (High + Low) / 2 default period = 9
+KijunSen (Base Line): (High + Low) / 2 default period = 26
+Chiku Span (Lagging Span): Price Close shifted back 26 bars
+Senkou A (Leading Span A): (TenkanSen + KijunSen) / 2 (Senkou A is shifted forward 26 bars)
+Senkou B (Leading Span B): (High + Low) / 2 using period = 52 (Senkou B is shifted forward 26 bars)
+```
+
+---
+
 ## function Intersection Point Of Two Lines
 
 ```golang

@@ -8,7 +8,7 @@ import (
 
 func main() {
 
-	// sourt bar_h1 old [date to new date]
+	// sort bar_h1 [old date to new date] ascending
 	bar_h1 := []ichimoku.Bar{
 		{L: 9450, H: 9570, C: 9490, O: 9530, V: 1158096.00, T: 1662525000000},
 		{L: 9450, H: 9550, C: 9480, O: 9530, V: 1041077.00, T: 1662528600000},
@@ -204,27 +204,25 @@ func main() {
 
 	driver := ichimoku.NewIchimokuDriver()
 
-	arr, err := driver.IchimokuRun(bar_h1)
+	arr, err := driver.Init(&bar_h1, 135)
 	if err != nil {
 		fmt.Println("error :", err)
 	}
-	// for _, it := range arr {
-	// 	fmt.Printf("%v\r\n", it.Print())
-	// }
 
 	lines_result := make([]ichimoku.IchimokuStatus, 2)
 
 	for i := len(arr) - 2; i > 0; i-- {
-		lines_result[0] = arr[i]   //today
-		lines_result[1] = arr[i+1] // yeserday
+		lines_result[0] = arr[i]   //current
+		lines_result[1] = arr[i+1] // previous
 
-		a, e := driver.AnalyseIchimoku(lines_result)
+		a, e := driver.PreAnalyseIchimoku(lines_result)
 
 		if e != nil {
 			fmt.Println("err", e)
 		}
 		if a != nil {
 			fmt.Printf("____ \r\n Find %v \r\n", a.Print())
+			fmt.Print(".")
 		}
 	}
 
