@@ -3,8 +3,10 @@ package ichimoku
 import "errors"
 
 var (
+	BuildFailed                       = errors.New("Build Failed")
 	NotEnoughData                     = errors.New("Not Enough Data")
 	DataNotFill                       = errors.New("Data not fill")
+	ChikoStatus26InPastNotMade        = errors.New("chiko status 26 in past It has not been made")
 	Date_is_not_greater_then_previous = errors.New("date is not greater than previous ")
 )
 

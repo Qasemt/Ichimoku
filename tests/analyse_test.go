@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLastBar(t *testing.T) {
-
-	bar_h1 := []ichimoku.Bar{
+var (
+	//52 bar
+	bar_h1 = []ichimoku.Bar{
 		{L: 8110, H: 8180, C: 8160, O: 8110, V: 664372.00, T: 1667201400000},
 		{L: 8100, H: 8260, C: 8200, O: 8150, V: 1241301.00, T: 1667205000000},
 		{L: 8110, H: 8450, C: 8440, O: 8170, V: 2909458.00, T: 1667280600000},
@@ -63,13 +63,18 @@ func TestLastBar(t *testing.T) {
 		{L: 9300, H: 9600, C: 9370, O: 9510, V: 3845936.00, T: 1668835800000},
 		{L: 9310, H: 9380, C: 9330, O: 9380, V: 1380628.00, T: 1668839400000},
 	}
+)
+
+func Test_26DayinThePastNotExist(t *testing.T) {
+
 	//fmt.Println("bars ", bars)
 	driver := ichimoku.NewIchimokuDriver()
 
-	arr, e1 := driver.Init(&bar_h1, 52)
+	driver.MakeIchimokuInPast(&bar_h1, 1)
 
-	assert.Empty(t, e1)
-	assert.Equal(t, len(arr), 1)
+	_, e1 := driver.AnalyseTriggerCross(*driver.GetLastDay(), bar_h1)
+
+	assert.Equal(t, e1, ichimoku.ChikoStatus26InPastNotMade)
 
 }
 func TestInside(t *testing.T) {
@@ -92,143 +97,5 @@ func TestInside(t *testing.T) {
 	a, e := driver.PreAnalyseIchimoku(lines_result)
 	assert.Empty(t, e)
 	assert.Equal(t, a.Status, ichimoku.IchimokuStatus_Cross_Above)
-
-}
-
-func TestCheckCloud_Above(t *testing.T) {
-
-	h1_above_ := []ichimoku.Point{
-		{X: 1667802600, Y: 8762},
-		{X: 1667806200, Y: 8882},
-		{X: 1667809800, Y: 8908},
-		{X: 1667885400, Y: 8928},
-		{X: 1667889000, Y: 9152},
-		{X: 1667892600, Y: 9222},
-		{X: 1667896200, Y: 9238},
-		{X: 1667971800, Y: 9238},
-		{X: 1667975400, Y: 9260},
-		{X: 1667979000, Y: 9285},
-		{X: 1667982600, Y: 9318},
-		{X: 1668231000, Y: 9318},
-		{X: 1668234600, Y: 9318},
-		{X: 1668238200, Y: 9320},
-		{X: 1668241800, Y: 9320},
-		{X: 1668317400, Y: 9358},
-		{X: 1668321000, Y: 9358},
-		{X: 1668324600, Y: 9410},
-		{X: 1668328200, Y: 9485},
-		{X: 1668403800, Y: 9485},
-		{X: 1668407400, Y: 9435},
-		{X: 1668411000, Y: 9430},
-		{X: 1668414600, Y: 9490},
-		{X: 1668490200, Y: 9498},
-		{X: 1668493800, Y: 9482},
-	}
-	line_helper := ichimoku.NewLineHelper()
-	point_from_price := ichimoku.NewPoint(float64(1668497400/1000), 9670)
-	res_senko_a, err := line_helper.GetCollisionWithLine(point_from_price, h1_above_)
-
-	//fmt.Println("senko A", res_senko_a, "err:", err)
-	assert.Equal(t, res_senko_a, ichimoku.EPointLocation_above)
-	assert.Empty(t, err)
-
-}
-func TestCheckCloud_below(t *testing.T) {
-
-	h1_above_ := []ichimoku.Point{
-		{X: 1666589400, Y: 8660},
-		{X: 1666593000, Y: 8660},
-		{X: 1666596600, Y: 8618},
-		{X: 1666600200, Y: 8555},
-		{X: 1666675800, Y: 8548},
-		{X: 1666679400, Y: 8502},
-		{X: 1666683000, Y: 8435},
-		{X: 1666686600, Y: 8435},
-		{X: 1666762200, Y: 8430},
-		{X: 1666765800, Y: 8360},
-		{X: 1666769400, Y: 8300},
-		{X: 1666773000, Y: 8282},
-		{X: 1667021400, Y: 8282},
-		{X: 1667025000, Y: 8282},
-		{X: 1667028600, Y: 8240},
-		{X: 1667032200, Y: 8160},
-		{X: 1667107800, Y: 8120},
-		{X: 1667111400, Y: 8120},
-		{X: 1667115000, Y: 8112},
-		{X: 1667118600, Y: 8110},
-		{X: 1667194200, Y: 8098},
-		{X: 1667197800, Y: 8100},
-		{X: 1667201400, Y: 8060},
-		{X: 1667205000, Y: 8052},
-		{X: 1667280600, Y: 8055},
-	}
-	line_helper := ichimoku.NewLineHelper()
-	point_from_price := ichimoku.NewPoint(float64(1667284200/1000), 8360)
-	res_senko_a, err := line_helper.GetCollisionWithLine(point_from_price, h1_above_)
-
-	assert.Equal(t, res_senko_a, ichimoku.EPointLocation_below)
-	assert.Empty(t, err)
-
-}
-func TestCheckCloud_below1(t *testing.T) {
-	// h1 shegoya Tue Oct  2022 18 10:00:00
-
-	h1_above_ := []ichimoku.Point{
-		{X: 1665819000, Y: 8745},
-		{X: 1665822600, Y: 8750},
-		{X: 1665898200, Y: 8750},
-		{X: 1665901800, Y: 8730},
-		{X: 1665905400, Y: 8725},
-		{X: 1665909000, Y: 8712},
-		{X: 1665984600, Y: 8692},
-		{X: 1665988200, Y: 8692},
-		{X: 1665991800, Y: 8680},
-		{X: 1665995400, Y: 8680},
-		{X: 1666071000, Y: 8680},
-	}
-	line_helper := ichimoku.NewLineHelper()
-	point_from_price := ichimoku.NewPoint(float64(1666074600/1000), 8650)
-	res_senko_a, err := line_helper.GetCollisionWithLine(point_from_price, h1_above_)
-
-	assert.Equal(t, res_senko_a, ichimoku.EPointLocation_below)
-	assert.Empty(t, err)
-
-}
-func TestCheckCloud_below3(t *testing.T) {
-	//|2022 Tue Nov 1 10:00:00
-	h1_above_ := []ichimoku.Point{
-		{X: 1666589400, Y: 8660},
-		{X: 1666593000, Y: 8660},
-		{X: 1666596600, Y: 8618},
-		{X: 1666600200, Y: 8555},
-		{X: 1666675800, Y: 8548},
-		{X: 1666679400, Y: 8502},
-		{X: 1666683000, Y: 8435},
-		{X: 1666686600, Y: 8435},
-		{X: 1666762200, Y: 8430},
-		{X: 1666765800, Y: 8360},
-		{X: 1666769400, Y: 8300},
-		{X: 1666773000, Y: 8282},
-		{X: 1667021400, Y: 8282},
-		{X: 1667025000, Y: 8282},
-		{X: 1667028600, Y: 8240},
-		{X: 1667032200, Y: 8160},
-		{X: 1667107800, Y: 8120},
-		{X: 1667111400, Y: 8120},
-		{X: 1667115000, Y: 8112},
-		{X: 1667118600, Y: 8110},
-		{X: 1667194200, Y: 8098},
-		{X: 1667197800, Y: 8100},
-		{X: 1667201400, Y: 8060},
-		{X: 1667205000, Y: 8052},
-		{X: 1667280600, Y: 8055},
-	}
-	line_helper := ichimoku.NewLineHelper()
-	point_from_price := ichimoku.NewPoint(float64(1667284200/1000), 8360)
-	res_senko_a, err := line_helper.GetCollisionWithLine(point_from_price, h1_above_)
-
-	//fmt.Println("senko A", res_senko_a, "err:", err)
-	assert.Equal(t, res_senko_a, ichimoku.EPointLocation_below)
-	assert.Empty(t, err)
 
 }

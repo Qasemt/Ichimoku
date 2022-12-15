@@ -204,13 +204,13 @@ func main() {
 
 	driver := ichimoku.NewIchimokuDriver()
 
-	arr, err := driver.Init(&bar_h1, 135)
+	err := driver.MakeIchimokuInPast(&bar_h1, 135)
 	if err != nil {
 		fmt.Println("error :", err)
 	}
 
 	lines_result := make([]ichimoku.IchimokuStatus, 2)
-
+	arr := driver.GetListDay()
 	for i := len(arr) - 2; i > 0; i-- {
 		lines_result[0] = arr[i]   //current
 		lines_result[1] = arr[i+1] // previous

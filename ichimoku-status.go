@@ -53,6 +53,9 @@ func NewIchimokuStatus(tenken ValueLine, kijon ValueLine, senKoA_Shifted26 Value
 
 	return &o
 }
+
+//----------------------------------------GET SET
+
 func (o *IchimokuStatus) SetChikoSpan(v Bar) {
 	o.ChikoSpan = v
 }
